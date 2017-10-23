@@ -5,17 +5,18 @@ class Company():
         self.hex = ''
         self.base = ''
         self.hrdw_addr_array = []
+        self.files = []
 
-    def add_hex_mac(self, mac):
-        self.hex = mac.strip()
+    def addHexMac(self, mac):
+        self.hex = mac
 
-    def add_base_mac(self, mac):
-        self.base = mac.strip()
+    def addBaseMac(self, mac):
+        self.base = mac
         self.trigger()
 
     def trigger(self):
         if self.hex != '' and self.base != '':
-            self.hrdw_addr_array.append(self.hex + '+' + self.base)
+            self.hrdw_addr_array.append(self.hex.strip() + '+' + self.base.strip())
             self.cnt = self.cnt + 1
 
         self.hex = ''
