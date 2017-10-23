@@ -5,6 +5,7 @@ class Company():
         self.hex = ''
         self.base = ''
         self.hrdw_addr_array = []
+        self.files = []
 
     def add_hex_mac(self, mac):
         self.hex = mac.strip()
