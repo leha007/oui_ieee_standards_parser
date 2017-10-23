@@ -1,3 +1,7 @@
+# Directories
 tmp/
 .idea/
+__pycache__/
+
+# Files
 result.csv
