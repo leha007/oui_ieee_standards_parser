@@ -14,7 +14,7 @@ g_the_great_dic = {}
 g_tmp_dir = 'tmp'
 g_unity_file = 'unity'
 g_result_file = 'result.csv'
-url_check = 'http://'
+g_url_http_tag = 'http://'
 
 g_file_url_list = ['http://standards-oui.ieee.org/oui/oui.txt',
                    'http://standards-oui.ieee.org/oui28/mam.txt',
@@ -37,7 +37,7 @@ def verify_dir():
 def download_files():
     for url_addr in g_file_url_list:
         url_hash = hashlib.md5(url_addr.encode())
-        file_path = g_tmp_dir + '/' + url_hash.hexdigest()
+        file_path = os.path.join(g_tmp_dir, url_hash.hexdigest())
 
         if os.path.exists(file_path):
             logging.info('file [' + file_path + ' exist, skip to next url')
@@ -111,7 +111,7 @@ def parse_raw_data_to_something_cool():
 
     with open(raw_file, 'r', encoding='utf8') as rfile:
         for line in rfile:
-            if url_check in line:
+            if g_url_http_tag in line:
                 current_file = line.rstrip()
             if g_hex_splitter in line:
                 add_hex_to_dic(line, current_file)
@@ -120,7 +120,7 @@ def parse_raw_data_to_something_cool():
 
 
 def save_parsed_data_to_file():
-    logging.info('Number of companies in dictionary: ' + str(len(g_the_great_dic)))
+    logging.info('number of companies in dictionary: ' + str(len(g_the_great_dic)))
     headers = 'Company_Names;Occurrence_Counter;URL;MAC_Ranges'
 
     with open(g_result_file, 'w', encoding='utf8') as wfile:
