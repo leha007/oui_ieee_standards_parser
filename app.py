@@ -4,6 +4,7 @@ import os
 import re
 import urllib.request
 from os import path
+from time import gmtime, strftime
 
 from company import Company
 
@@ -15,6 +16,7 @@ g_tmp_dir = 'tmp'
 g_unity_file = 'unity'
 g_result_file = 'result.csv'
 g_url_http_tag = 'http://'
+last_update_file = 'last_update'
 
 g_file_url_list = ['http://standards-oui.ieee.org/oui/oui.txt',
                    'http://standards-oui.ieee.org/oui28/mam.txt',
@@ -34,6 +36,19 @@ def verify_dir():
         logging.info(g_tmp_dir + ' directory exist')
 
 
+def renew_files():
+    file_path = os.path.join(g_tmp_dir, last_update_file)
+    if os.path.exists(file_path):
+        with open(file_path, 'r', encoding='utf8') as file:
+            print('Standards were downloaded at ' + file.read())
+            file.close()
+            Yes_No = int(input('Do you want renew standards? 1-Yes, 0-No: '))
+            if Yes_No:
+                dir_files = [f for f in os.listdir(g_tmp_dir) if path.isfile(os.path.join(g_tmp_dir, f))]
+                for file_name in dir_files:
+                    os.remove(os.path.join(g_tmp_dir, file_name))
+
+
 def download_files():
     for url_addr in g_file_url_list:
         url_hash = hashlib.md5(url_addr.encode())
@@ -47,6 +62,12 @@ def download_files():
             logging.info('download [' + url_addr + '] file...')
             urllib.request.urlretrieve(url_addr, file_path)
             logging.info('finished downloading [' + url_addr + '] file successfully')
+            file_path = os.path.join(g_tmp_dir, last_update_file)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            with open(file_path, 'w', encoding='utf8') as wfile:
+                wfile.write(strftime("%d/%m/%Y_%H:%M", gmtime()) + '\n')
+                wfile.close()
         except:
             logging.error('unable to retrieve [' + url_addr + '] file')
             pass
@@ -62,8 +83,8 @@ def untite_text_files():
     dir_files = [f for f in os.listdir(g_tmp_dir) if path.isfile(os.path.join(g_tmp_dir, f))]
     with open(os.path.join(g_tmp_dir, g_unity_file), 'w', encoding='utf8') as outfile:
         for file_name in dir_files:
-            if file_name == g_unity_file:
-                logging.info('skip result file...')
+            if file_name == g_unity_file or last_update_file == file_name:
+                logging.info('skip result and last updated files ...')
                 continue
 
             logging.info('add [' + file_name + '] file to ' + g_unity_file)
@@ -137,6 +158,9 @@ def main():
     try:
         logging.info('check if needed directories exist')
         verify_dir()
+
+        logging.info('check if needed new standards')
+        renew_files()
 
         logging.info('download files...')
         download_files()
