@@ -11,9 +11,11 @@ from company import Company
 g_hex_splitter = '(hex)'
 g_base_splitter = '(base 16)'
 g_the_great_dic = {}
+g_the_not_so_great_dic = {}
 
 g_tmp_dir = 'tmp'
 g_unity_file = 'unity'
+g_unity_file_old = 'unity_old'
 g_result_file = 'result.csv'
 g_url_http_tag = 'http://'
 last_update_file = 'last_update'
@@ -37,16 +39,23 @@ def verify_dir():
 
 
 def renew_files():
+    yes_no = 0
     file_path = os.path.join(g_tmp_dir, last_update_file)
     if os.path.exists(file_path):
         with open(file_path, 'r', encoding='utf8') as file:
             print('Standards were downloaded at ' + file.read())
             file.close()
-            Yes_No = int(input('Do you want renew standards? 1-Yes, 0-No: '))
-            if Yes_No:
-                dir_files = [f for f in os.listdir(g_tmp_dir) if path.isfile(os.path.join(g_tmp_dir, f))]
-                for file_name in dir_files:
+        yes_no = int(input('Do you want renew standards? 1-Yes, 0-No: '))
+        if yes_no:
+            dir_files = [f for f in os.listdir(g_tmp_dir) if path.isfile(os.path.join(g_tmp_dir, f))]
+            for file_name in dir_files:
+                if file_name == g_unity_file:
+                    if os.path.exists(os.path.join(g_tmp_dir, g_unity_file_old)):
+                        os.remove(os.path.join(g_tmp_dir, g_unity_file_old))
+                    os.rename(os.path.join(g_tmp_dir, file_name), os.path.join(g_tmp_dir, g_unity_file_old))
+                else:
                     os.remove(os.path.join(g_tmp_dir, file_name))
+    return yes_no
 
 
 def download_files():
@@ -67,7 +76,6 @@ def download_files():
                 os.remove(file_path)
             with open(file_path, 'w', encoding='utf8') as wfile:
                 wfile.write(strftime("%d/%m/%Y_%H:%M", gmtime()) + '\n')
-                wfile.close()
         except:
             logging.error('unable to retrieve [' + url_addr + '] file')
             pass
@@ -83,7 +91,7 @@ def untite_text_files():
     dir_files = [f for f in os.listdir(g_tmp_dir) if path.isfile(os.path.join(g_tmp_dir, f))]
     with open(os.path.join(g_tmp_dir, g_unity_file), 'w', encoding='utf8') as outfile:
         for file_name in dir_files:
-            if file_name == g_unity_file or last_update_file == file_name:
+            if file_name == g_unity_file or last_update_file == file_name or file_name == g_unity_file_old:
                 logging.info('skip result and last updated files ...')
                 continue
 
@@ -94,35 +102,44 @@ def untite_text_files():
                 outfile.write(infile.read())
 
 
-def get_raw_file():
-    return os.path.join(g_tmp_dir, g_unity_file)
-
-
-def add_hex_to_dic(line, current_file):
+def add_hex_to_dic(input_dic, line, current_file):
     splitted_line = line.split(g_hex_splitter)
     mac = re.sub('\s+', ' ', splitted_line[0])
     comp = re.sub('\s+', ' ', splitted_line[1])
-    if comp not in g_the_great_dic:
-        g_the_great_dic[comp] = Company(comp)
+    if comp not in input_dic:
+        input_dic[comp] = Company(comp)
 
-    if current_file not in g_the_great_dic[comp].files:
-        g_the_great_dic[comp].files.append(current_file)
-    g_the_great_dic[comp].add_hex_mac(mac)
+    if current_file not in input_dic[comp].files:
+        input_dic[comp].files.append(current_file)
+        if input_dic[comp].first_entry:
+            input_dic[comp].files_cnt.append(input_dic[comp].files_cnt_tmp)
+            input_dic[comp].files_cnt_tmp = 0
+    input_dic[comp].first_entry = 1
+    input_dic[comp].files_cnt_tmp += 1
+    input_dic[comp].add_hex_mac(mac)
 
 
-def add_base_to_dic(line):
+def write_last_cnt(input_dic):
+    for key, value in input_dic.items():
+        input_dic[key].files_cnt.append(input_dic[key].files_cnt_tmp)
+
+
+def add_base_to_dic(input_dic, line):
     splitted_line = line.split(g_base_splitter)
     mac = re.sub('\s+', ' ', splitted_line[0])
     comp = re.sub('\s+', ' ', splitted_line[1])
-
-    if comp not in g_the_great_dic:
-        g_the_great_dic[comp] = Company(comp)
-
-    g_the_great_dic[comp].add_base_mac(mac)
+    if comp not in input_dic:
+        input_dic[comp] = Company(comp)
+    input_dic[comp].add_base_mac(mac)
 
 
-def parse_raw_data_to_something_cool():
-    raw_file = get_raw_file()
+def parse_raw_data_to_something_cool(input_file):
+    raw_file = os.path.join(g_tmp_dir, input_file)
+
+    if input_file == g_unity_file:
+        input_dic = g_the_great_dic
+    else:
+        input_dic = g_the_not_so_great_dic
 
     if not os.path.exists(raw_file):
         logging.error('raw file not found...')
@@ -135,9 +152,15 @@ def parse_raw_data_to_something_cool():
             if g_url_http_tag in line:
                 current_file = line.rstrip()
             if g_hex_splitter in line:
-                add_hex_to_dic(line, current_file)
+                add_hex_to_dic(input_dic, line, current_file)
             if g_base_splitter in line:
-                add_base_to_dic(line)
+                add_base_to_dic(input_dic, line)
+        write_last_cnt(input_dic)
+
+
+def compare_dicts_and_write_results():
+    logging.info('Comparing dictionaries... ')
+    # Here would be Pushkin's dictionaries compare logic
 
 
 def save_parsed_data_to_file():
@@ -150,6 +173,7 @@ def save_parsed_data_to_file():
             if value.cnt > 1:
                 line_to_write = value.name + ';' + str(value.cnt) + ';' + ','.join(
                     str(line) for line in value.files) + ';' + ','.join(
+                    str(line) for line in value.files_cnt) + ';' + ','.join(
                     str(line) for line in value.hrdw_addr_array)
                 wfile.write(line_to_write + '\n')
 
@@ -160,7 +184,7 @@ def main():
         verify_dir()
 
         logging.info('check if needed new standards')
-        renew_files()
+        renew = renew_files()
 
         logging.info('download files...')
         download_files()
@@ -169,7 +193,11 @@ def main():
         untite_text_files()
 
         logging.info('parse data')
-        parse_raw_data_to_something_cool()
+        parse_raw_data_to_something_cool(g_unity_file)
+
+        if renew:
+            parse_raw_data_to_something_cool(g_unity_file_old)
+            compare_dicts_and_write_results()
 
         logging.info('save parsed data to [' + g_result_file + '] file')
         save_parsed_data_to_file()
