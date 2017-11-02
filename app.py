@@ -17,6 +17,7 @@ g_tmp_dir = 'tmp'
 g_unity_file = 'unity'
 g_unity_file_old = 'unity_old'
 g_result_file = 'result.csv'
+g_updated_file = 'updated.txt'
 g_url_http_tag = 'http://'
 last_update_file = 'last_update'
 
@@ -40,6 +41,7 @@ def verify_dir():
 
 def renew_files():
     yes_no = 0
+    skip = 0
     file_path = os.path.join(g_tmp_dir, last_update_file)
     if os.path.exists(file_path):
         with open(file_path, 'r', encoding='utf8') as file:
@@ -53,6 +55,9 @@ def renew_files():
                     if os.path.exists(os.path.join(g_tmp_dir, g_unity_file_old)):
                         os.remove(os.path.join(g_tmp_dir, g_unity_file_old))
                     os.rename(os.path.join(g_tmp_dir, file_name), os.path.join(g_tmp_dir, g_unity_file_old))
+                    skip = 1
+                elif skip == 1 and file_name == g_unity_file_old:
+                    continue
                 else:
                     os.remove(os.path.join(g_tmp_dir, file_name))
     return yes_no
@@ -160,7 +165,51 @@ def parse_raw_data_to_something_cool(input_file):
 
 def compare_dicts_and_write_results():
     logging.info('Comparing dictionaries... ')
-    # Here would be Pushkin's dictionaries compare logic
+    # Here won't be Pushkin's dictionaries compare logic
+    with open(g_updated_file, 'w', encoding='utf8') as wfile:
+        wfile.write('Added:' + '\n')
+        for key, value in g_the_great_dic.items():
+            if key not in g_the_not_so_great_dic:
+                line_to_write = 'Company: ' + str(key) + ' Added to files: ' + ', '.join(
+                    str(line) for line in value.files) + '; ' + ', '.join(
+                    str(line) for line in value.hrdw_addr_array)
+                wfile.write(line_to_write + '\n')
+            else:
+                ind1 = 0
+                for address_ind, address in enumerate(value.files):
+                    if address not in g_the_not_so_great_dic[key].files:
+                        line_to_write = 'Company: ' + str(key) + ' Added to file: ' + str(address) + '; ' \
+                                        + ', '.join(str(line) for line in value.hrdw_addr_array)
+                        wfile.write(line_to_write + '\n')
+                    else:
+                        for ind2 in range(0, value.files_cnt[address_ind]):
+                            if value.hrdw_addr_array[ind1] not in g_the_not_so_great_dic[key].hrdw_addr_array:
+                                line_to_write = 'Company: ' + str(key) + ' Added to file: ' + str(address) + '; ' \
+                                                + str(value.hrdw_addr_array[ind1])
+                                wfile.write(line_to_write + '\n')
+                            ind1 += 1
+
+        wfile.write('Removed:' + '\n')
+        for key, value in g_the_not_so_great_dic.items():
+            if key not in g_the_great_dic:
+                line_to_write = 'Company: ' + str(key) + ' Removed from files: ' + ', '.join(
+                    str(line) for line in value.files) + '; ' + ', '.join(
+                    str(line) for line in value.hrdw_addr_array)
+                wfile.write(line_to_write + '\n')
+            else:
+                ind1 = 0
+                for address_ind, address in enumerate(value.files):
+                    if address not in g_the_great_dic[key].files:
+                        line_to_write = 'Company: ' + str(key) + ' Removed from file: ' + str(address) + '; ' \
+                                        + ', '.join(str(line) for line in value.hrdw_addr_array)
+                        wfile.write(line_to_write + '\n')
+                    else:
+                        for ind2 in range(0, value.files_cnt[address_ind]):
+                            if value.hrdw_addr_array[ind1] not in g_the_great_dic[key].hrdw_addr_array:
+                                line_to_write = 'Company: ' + str(key) + ' Removed from file: ' + str(address) + '; ' \
+                                                + str(value.hrdw_addr_array[ind1])
+                                wfile.write(line_to_write + '\n')
+                            ind1 += 1
 
 
 def save_parsed_data_to_file():
