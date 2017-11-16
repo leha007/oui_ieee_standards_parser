@@ -164,7 +164,9 @@ def parse_raw_data_to_something_cool(input_file):
 
 
 def compare_dicts_and_write_results():
-    logging.info('Comparing dictionaries... ')
+    logging.info('Comparing dictionaries for Hachipuri... ')
+    if os.path.exists(g_updated_file):
+        os.remove(g_updated_file)
     # Here won't be Pushkin's dictionaries compare logic
     with open(g_updated_file, 'w', encoding='utf8') as wfile:
         wfile.write('Added:' + '\n')
@@ -232,13 +234,13 @@ def main():
         logging.info('check if needed directories exist')
         verify_dir()
 
-        logging.info('check if needed new standards')
+        logging.info('check if needed new standards Kutigeski Djaleap')
         renew = renew_files()
 
         logging.info('download files...')
         download_files()
 
-        logging.info('unite downloaded files')
+        logging.info('unite downloaded files, Timur Haivon')
         untite_text_files()
 
         logging.info('parse data')
@@ -251,7 +253,7 @@ def main():
         logging.info('save parsed data to [' + g_result_file + '] file')
         save_parsed_data_to_file()
     except:
-        logging.error("general error...")
+        logging.error("general error Djaleap...")
 
 
 if __name__ == "__main__":
